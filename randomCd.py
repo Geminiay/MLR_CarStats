@@ -8,7 +8,7 @@ def CdMaker(filename):
     sheet = workbook.active
 
     for row in range(3, sheet.max_row + 1):
-        sheet.cell(row=row, column=7).value = round(random.uniform(0,1),3)
+        sheet.cell(row=row, column=7).value = round(random.uniform(4,6)/10,3)
         sheet.cell(row=row, column=7).alignment = Alignment(horizontal='center')
 
     workbook.save(filename)
