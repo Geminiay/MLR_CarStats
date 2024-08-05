@@ -21,10 +21,10 @@ def objective(beta):
 
 # Combined Constraints
 def aggregated_constraint1(beta):
-    return np.sum(np.sin(np.radians(X[:, 3])) * X[:, 2] - np.sin(np.radians(X[:, 1])) * X[:, 0] - 20.73)
+    return np.sum(np.sin(np.radians(X[:, 3])) * X[:, 0] - np.sin(np.radians(X[:, 4])) * X[:, 1] - 20.73)
 
 def aggregated_constraint2(beta):
-    return np.sum(np.cos(np.radians(X[:, 1])) * X[:, 0] + np.cos(np.radians(X[:, 3])) * X[:, 2] + X[:, 4] - 3001.20)
+    return np.sum(np.cos(np.radians(X[:, 3])) * X[:, 0] + np.cos(np.radians(X[:, 4])) * X[:, 1] + X[:, 2] - 3001.20)
 
 # Define the file path
 file_path = 'dataset.xlsx'

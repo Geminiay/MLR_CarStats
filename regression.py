@@ -9,35 +9,47 @@ import pandas as pd
 from scipy.optimize import minimize
 
 def read_excel_to_matrix(file_path):
-    #Load the workbook and select the active sheet
+    # Load the workbook and select the active sheet
     workbook = openpyxl.load_workbook(file_path)
     sheet = workbook.active
     
-    #Initialize an empty matrix
+    # Initialize an empty matrix
     data_X = []
     data_y = []
 
-    #Iterate through the rows in the sheet
+    # Iterate through the rows in the sheet
     for X in range(2, sheet.max_row + 1):
         row_data = []
         for col in range(2, sheet.max_column):
             cell_value = sheet.cell(row=X, column=col).value
-            row_data.append(float(cell_value))
+            row_data.append(float(cell_value))  # Convert each value to float
         data_X.append(row_data)
     
     for y in range(2, sheet.max_row + 1):
-        cell_value = sheet.cell(row=y, column=7).value
-        data_y.append(float(cell_value))
+        cell_value = sheet.cell(row=y, column=sheet.max_column).value
+        data_y.append(float(cell_value))  # Convert each value to float
 
     array_X = np.array(data_X)
     array_y = np.array(data_y)
 
-    #Close the workbook
+    # Close the workbook
     workbook.close()
     
     return array_X, array_y
 
+def preprocess_data(X, y):
+    X = pd.DataFrame(X)
+    y = pd.Series(y)
+
+    # Convert data to numeric and handle missing values
+    X = X.apply(pd.to_numeric, errors='coerce').fillna(0).values
+    y = pd.to_numeric(y, errors='coerce').fillna(0).values
+
+    return X, y
+
 def trainData(X, y):
+    X, y = preprocess_data(X, y)
+    
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
     model = LinearRegression()
@@ -59,7 +71,6 @@ def trainData(X, y):
         print(f'Coefficient for feature {i+1}: {coef}')
 
     return model, y_test, y_pred
-
 
 def plot_regression_results(y_test, y_pred):
     # Plot Actual vs Predicted values
@@ -119,19 +130,21 @@ def analyze_target_variable(y):
 def objective_function(X, model):
     return model.predict(X.reshape(1, -1))[0]
 
-def generate_lowest_target_with_constraints(model, feature_shape):
+def generate_lowest_target_with_constraints(model, X):
+    feature_shape = X.shape[1]
+    
     # Initial guess for the features (mean of the dataset)
-    initial_guess = np.zeros(feature_shape)
-
-    # Define bounds for the optimization
-    bounds = [(None, None)] * feature_shape  # No bounds
-
+    initial_guess = np.mean(X, axis=0)
+    
+    # Define bounds for the optimization (using reasonable ranges for each feature)
+    bounds = [(min(X[:, i]), max(X[:, i])) for i in range(feature_shape)]
+    
     # Define nonlinear constraints
     constraints = [
         {'type': 'eq', 'fun': constraint1},
         {'type': 'eq', 'fun': constraint2}
     ]
-
+    
     result = minimize(objective_function, initial_guess, args=(model,), method='SLSQP', 
                       bounds=bounds, constraints=constraints)
 
@@ -144,19 +157,19 @@ def generate_lowest_target_with_constraints(model, feature_shape):
         print("Optimization failed details:")
         print("Status:", result.status)
         print("Message:", result.message)
-        raise ValueError("Optimization failed") 
+        raise ValueError("Optimization failed")
 
 def constraint1(X):
-    return np.sin(np.radians(X[4])) * X[3] - np.sin(np.radians(X[2])) * X[1] - 20.73
+    return np.sin(np.radians(X[3])) * X[0] - np.sin(np.radians(X[4])) * X[1] - 20.73
 
 def constraint2(X):
-    return np.cos(np.radians(X[2])) * X[1] + np.cos(np.radians(X[4])) * X[3] + X[0] - 3001.20  # Note: X[5] should be X[0] in Python 0-based index
+    return np.cos(np.radians(X[3])) * X[0] + np.cos(np.radians(X[4])) * X[1] + X[2] - 3001.20  # Note: X[5] should be X[0] in Python 0-based index
 
-#Define the file path
+# Define the file path
 file_path = 'dataset.xlsx'
 
-#Read the data into a matrix
-X , y = read_excel_to_matrix(file_path)
+# Read the data into a matrix
+X, y = read_excel_to_matrix(file_path)
 
 print("Feature Matrix X:\n")
 print(X)
@@ -167,8 +180,8 @@ print(y)
 analyze_target_variable(y)
 model, y_test, y_pred = trainData(X, y)
 
-#Generate new five parameters (X) for the lowest value (y) possible
-optimized_features = generate_lowest_target_with_constraints(model, X.shape[1])
+# Generate new five parameters (X) for the lowest value (y) possible
+optimized_features = generate_lowest_target_with_constraints(model, X)
 
-#Plot regression results
+# Plot regression results
 plot_regression_results(y_test, y_pred)
