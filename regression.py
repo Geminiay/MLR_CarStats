@@ -142,7 +142,8 @@ def generate_lowest_target_with_constraints(model, X):
     # Define nonlinear constraints
     constraints = [
         {'type': 'eq', 'fun': constraint1},
-        {'type': 'eq', 'fun': constraint2}
+        {'type': 'eq', 'fun': constraint2},
+        {'type': 'eq', 'fun': constraint3}
     ]
     
     result = minimize(objective_function, initial_guess, args=(model,), method='SLSQP', 
@@ -160,10 +161,13 @@ def generate_lowest_target_with_constraints(model, X):
         raise ValueError("Optimization failed")
 
 def constraint1(X):
-    return np.sin(np.radians(X[3])) * X[0] - np.sin(np.radians(X[4])) * X[1] - 20.73
+    return np.sin(np.radians(X[4])) * X[1] - 575.75
 
 def constraint2(X):
-    return np.cos(np.radians(X[3])) * X[0] + np.cos(np.radians(X[4])) * X[1] + X[2] - 3001.20  # Note: X[5] should be X[0] in Python 0-based index
+    return np.sin(np.radians(X[3])) * X[0] - 690.33
+
+def constraint3(X):
+    return np.cos(np.radians(X[3])) * X[0] + np.cos(np.radians(X[4])) * X[1] + X[2] - 3001.2  # Note: X[5] should be X[0] in Python 0-based index
 
 # Define the file path
 file_path = 'dataset.xlsx'
