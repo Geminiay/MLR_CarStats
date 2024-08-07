@@ -6,6 +6,7 @@ import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
+from scipy.optimize import differential_evolution, NonlinearConstraint
 
 # Function to read data from an Excel file into feature matrix X and target array y
 def read_excel_to_matrix(file_path):
@@ -118,29 +119,61 @@ def analyze_target_variable(y):
 def objective_function(features, model):
     return model.predict([features])[0]
 
-# Function to generate optimized features using Grid Search
-def generate_lowest_target_with_grid_search(model, X, grid_size=10):
+# Constraints for the optimization
+def constraint_1(x):
+    return np.sin(np.radians(x[4])) * x[1] - 575.75
+
+def constraint_2(x):
+    return np.sin(np.radians(x[3])) * x[0] - 690.33
+
+def constraint_3(x):
+    return np.cos(np.radians(x[3])) * x[0] + np.cos(np.radians(x[4])) * x[1] + x[2] - 3001.2
+
+# Wrapper function for the optimization to include constraints
+def constrained_objective_function(features, model):
+    return objective_function(features, model)
+
+# Function to generate optimized features using Differential Evolution
+def generate_lowest_target_with_differential_evolution(model, X):
     feature_shape = X.shape[1]
     
-    # Define the grid range for each feature
-    grid_ranges = [np.linspace(np.min(X[:, i]), np.max(X[:, i]), grid_size) for i in range(feature_shape)]
+    # Define the bounds for each feature
+    bounds = [(np.min(X[:, i]), np.max(X[:, i])) for i in range(feature_shape)]
     
-    # Generate all possible combinations of grid points
-    grid_points = np.array(np.meshgrid(*grid_ranges)).T.reshape(-1, feature_shape)
+    # Define the constraints as NonlinearConstraint objects
+    constraints = [
+        NonlinearConstraint(constraint_1, 0, 0),
+        NonlinearConstraint(constraint_2, 0, 0),
+        NonlinearConstraint(constraint_3, 0, 0)
+    ]
     
-    min_target_value = float('inf')
-    best_features = None
+    result = differential_evolution(
+        constrained_objective_function,
+        bounds,
+        args=(model,),
+        constraints=constraints,
+        strategy='best1bin',
+        maxiter=5000,
+        popsize=15,
+        tol=1e-8,
+        mutation=(0.5, 1),
+        recombination=0.7
+    )
     
-    # Evaluate each grid point
-    for point in grid_points:
-        target_value = objective_function(point, model)
-        if target_value < min_target_value:
-            min_target_value = target_value
-            best_features = point
+    best_features = result.x
+    min_target_value = result.fun
     
     print(f"Optimized Features for Minimum Target: {best_features}")
     print(f"Predicted Minimum Target Value: {min_target_value}")
     return best_features
+
+# Function to verify if constraints are satisfied
+def verify_constraints(features):
+    c1 = np.sin(np.radians(features[4])) * features[1] - 575.75
+    c2 = np.sin(np.radians(features[3])) * features[0] - 690.33
+    c3 = np.cos(np.radians(features[3])) * features[0] + np.cos(np.radians(features[4])) * features[1] + features[2] - 3001.2
+    
+    return c1, c2, c3
 
 # Define the file path
 file_path = 'dataset.xlsx'
@@ -157,8 +190,14 @@ analyze_target_variable(y)
 # Train the model and evaluate
 model, X_test, y_test, y_pred = train_model(X, y)
 
-# Generate new parameters for the lowest possible target value using Grid Search
-optimized_features = generate_lowest_target_with_grid_search(model, X)
+# Generate new parameters for the lowest possible target value using Differential Evolution
+optimized_features = generate_lowest_target_with_differential_evolution(model, X)
+
+# Verify constraints
+constraints = verify_constraints(optimized_features)
+print("Constraint 1 (should be 0):", constraints[0])
+print("Constraint 2 (should be 0):", constraints[1])
+print("Constraint 3 (should be 0):", constraints[2])
 
 # Plot regression results
 plot_regression_results(y_test, y_pred)
