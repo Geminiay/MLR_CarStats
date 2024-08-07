@@ -19,12 +19,15 @@ def objective(beta):
     mse = np.mean((y - predictions) ** 2)
     return mse
 
-# Combined Constraints
-def aggregated_constraint1(beta):
-    return np.sum(np.sin(np.radians(X[:, 3])) * X[:, 0] - np.sin(np.radians(X[:, 4])) * X[:, 1] - 20.73)
+# Updated Constraints
+def constraint1(beta):
+    return np.sin(np.radians(beta[4])) * beta[1] - 575.75
 
-def aggregated_constraint2(beta):
-    return np.sum(np.cos(np.radians(X[:, 3])) * X[:, 0] + np.cos(np.radians(X[:, 4])) * X[:, 1] + X[:, 2] - 3001.20)
+def constraint2(beta):
+    return np.sin(np.radians(beta[3])) * beta[0] - 690.33
+
+def constraint3(beta):
+    return np.cos(np.radians(beta[3])) * beta[0] + np.cos(np.radians(beta[4])) * beta[1] + beta[2] - 3001.2
 
 # Define the file path
 file_path = 'dataset.xlsx'
@@ -46,14 +49,21 @@ print("Feature matrix (X) after scaling:\n", X)
 # Initial guess for the parameters
 initial_guess = np.ones(6) * 0.1  # Small non-zero initial guess
 
+# Check if initial guess satisfies constraints
+print("Initial guess feasibility:")
+print("Constraint 1:", constraint1(initial_guess))
+print("Constraint 2:", constraint2(initial_guess))
+print("Constraint 3:", constraint3(initial_guess))
+
 # Define the constraints in the form required by 'minimize'
 constraints = [
-    {'type': 'eq', 'fun': aggregated_constraint1},
-    {'type': 'eq', 'fun': aggregated_constraint2}
+    {'type': 'eq', 'fun': constraint1},
+    {'type': 'eq', 'fun': constraint2},
+    {'type': 'eq', 'fun': constraint3}
 ]
 
 # Optimize
-result = minimize(objective, initial_guess, constraints=constraints)
+result = minimize(objective, initial_guess, constraints=constraints, method='SLSQP', options={'disp': True})
 
 # Display results
 if result.success:

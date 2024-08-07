@@ -4,11 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
-from scipy.optimize import minimize
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import make_pipeline
 
 # Function to read data from an Excel file into feature matrix X and target array y
 def read_excel_to_matrix(file_path):
@@ -45,13 +42,13 @@ def preprocess_data(X, y):
 
     return X, y
 
-# Function to train a linear regression model and evaluate it
+# Function to train a random forest regression model and evaluate it
 def train_model(X, y):
     X, y = preprocess_data(X, y)
     
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    model = LinearRegression()
+    model = RandomForestRegressor(random_state=42)
     model.fit(X_train, y_train)
 
     y_pred = model.predict(X_test)
@@ -62,11 +59,11 @@ def train_model(X, y):
     print(f'Mean Squared Error: {mse}')
     print(f'R-squared: {r2}')
 
-    coefficients = model.coef_
-    for i, coef in enumerate(coefficients):
-        print(f'Coefficient for feature {i+1}: {coef}')
+    importances = model.feature_importances_
+    for i, importance in enumerate(importances):
+        print(f'Importance for feature {i+1}: {importance}')
 
-    return model, y_test, y_pred
+    return model, X_test, y_test, y_pred
 
 # Function to plot regression results (Actual vs Predicted and Residuals)
 def plot_regression_results(y_test, y_pred):
@@ -117,45 +114,33 @@ def analyze_target_variable(y):
     plt.ylabel('Target')
     plt.show()
 
-# Objective function for optimization (predicting target using the model)
-def objective_function(X, model):
-    return model.predict(X.reshape(1, -1))[0]
+# Custom objective function for grid search
+def objective_function(features, model):
+    return model.predict([features])[0]
 
-# Function to generate optimized features to achieve the lowest target value under constraints
-def generate_lowest_target_with_constraints(model, X):
+# Function to generate optimized features using Grid Search
+def generate_lowest_target_with_grid_search(model, X, grid_size=10):
     feature_shape = X.shape[1]
-    initial_guess = np.mean(X, axis=0)
-    bounds = [(min(X[:, i]), max(X[:, i])) for i in range(feature_shape)]
     
-    constraints = [
-        {'type': 'eq', 'fun': lambda X: constraint1(X)},
-        {'type': 'eq', 'fun': lambda X: constraint2(X)},
-        {'type': 'eq', 'fun': lambda X: constraint3(X)}
-    ]
+    # Define the grid range for each feature
+    grid_ranges = [np.linspace(np.min(X[:, i]), np.max(X[:, i]), grid_size) for i in range(feature_shape)]
     
-    result = minimize(lambda x: objective_function(x, model), initial_guess, method='SLSQP', 
-                      bounds=bounds, constraints=constraints)
-
-    if result.success:
-        optimized_features = result.x
-        print(f"Optimized Features for Minimum Target: {optimized_features}")
-        print(f"Predicted Minimum Target Value: {result.fun}")
-        return optimized_features
-    else:
-        print("Optimization failed details:")
-        print("Status:", result.status)
-        print("Message:", result.message)
-        raise ValueError("Optimization failed")
-
-# Constraint functions for the optimization problem
-def constraint1(X):
-    return np.sin(np.radians(X[4])) * X[1] - 575.75
-
-def constraint2(X):
-    return np.sin(np.radians(X[3])) * X[0] - 690.33
-
-def constraint3(X):
-    return np.cos(np.radians(X[3])) * X[0] + np.cos(np.radians(X[4])) * X[1] + X[2] - 3001.2
+    # Generate all possible combinations of grid points
+    grid_points = np.array(np.meshgrid(*grid_ranges)).T.reshape(-1, feature_shape)
+    
+    min_target_value = float('inf')
+    best_features = None
+    
+    # Evaluate each grid point
+    for point in grid_points:
+        target_value = objective_function(point, model)
+        if target_value < min_target_value:
+            min_target_value = target_value
+            best_features = point
+    
+    print(f"Optimized Features for Minimum Target: {best_features}")
+    print(f"Predicted Minimum Target Value: {min_target_value}")
+    return best_features
 
 # Define the file path
 file_path = 'dataset.xlsx'
@@ -170,10 +155,10 @@ print("Target Array y:\n", y)
 analyze_target_variable(y)
 
 # Train the model and evaluate
-model, y_test, y_pred = train_model(X, y)
+model, X_test, y_test, y_pred = train_model(X, y)
 
-# Generate new parameters for the lowest possible target value
-optimized_features = generate_lowest_target_with_constraints(model, X)
+# Generate new parameters for the lowest possible target value using Grid Search
+optimized_features = generate_lowest_target_with_grid_search(model, X)
 
 # Plot regression results
 plot_regression_results(y_test, y_pred)
