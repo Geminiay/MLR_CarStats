@@ -153,34 +153,6 @@ def residual_analysis(X, y, degree=2):
     plt.grid()
     plt.show()
 
-def poly_regression_with_regularization(X, y, degree=2, alpha=1.0, regularization="ridge"):
-    # Generate polynomial features
-    poly = PolynomialFeatures(degree=degree)
-    X_poly = poly.fit_transform(X)
-    
-    # Select the regularization model
-    if regularization == "ridge":
-        model = Ridge(alpha=alpha)
-    elif regularization == "lasso":
-        model = Lasso(alpha=alpha)
-    else:
-        raise ValueError("Regularization must be 'ridge' or 'lasso'")
-    
-    # Fit the model
-    model.fit(X_poly, y)
-    
-    # Predict and calculate MSE and R-squared
-    y_pred = model.predict(X_poly)
-    mse = mean_squared_error(y, y_pred)
-    r2 = r2_score(y, y_pred)
-    
-    print(f"Polynomial Regression with {regularization.capitalize()} Regularization")
-    print(f"Degree: {degree}, Alpha: {alpha}")
-    print(f"MSE: {mse}")
-    print(f"R-squared: {r2}")
-    
-    return model, poly
-
 # Define the file path
 file_path = 'dataset.xlsx'
 
@@ -198,9 +170,3 @@ plot_learning_curves(X, y)
 
 # Perform residual analysis
 residual_analysis(X, y)
-
-# Apply Ridge Regularization
-ridge_model, poly_ridge = poly_regression_with_regularization(X, y, degree=2, alpha=1.0, regularization="ridge")
-
-# Apply Lasso Regularization
-lasso_model, poly_lasso = poly_regression_with_regularization(X, y, degree=2, alpha=0.01, regularization="lasso")

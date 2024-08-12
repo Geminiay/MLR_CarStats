@@ -94,6 +94,7 @@ def predict_new(poly_model, poly, new_data):
     
     return predictions  # Return the predictions as an array
 
+
 # Define the file path
 file_path = 'dataset.xlsx'
 prediction_file_path = 'prediction_data.xlsx'
