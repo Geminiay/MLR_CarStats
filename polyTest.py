@@ -153,14 +153,6 @@ def residual_analysis(X, y, degree=2):
     plt.grid()
     plt.show()
 
-def detect_outliers_zscore(X, y, threshold=3):
-    # Combine features and target into a single dataframe
-    data = np.hstack((X, y.reshape(-1, 1)))
-    z_scores = np.abs(zscore(data))
-    
-    outliers = np.where(z_scores > threshold)
-    return outliers
-
 # Define the file path
 file_path = 'dataset.xlsx'
 
@@ -178,25 +170,3 @@ plot_learning_curves(X, y)
 
 # Perform residual analysis
 residual_analysis(X, y)
-
-outliers_zscore = detect_outliers_zscore(X, y)
-print("Outliers detected using Z-Score method:", outliers_zscore)
-
-# Remove the detected outliers
-# Assuming outliers_zscore is in the form (array([indices]), array([column_indices]))
-outlier_indices = np.unique(outliers_zscore[0])  # Get unique row indices of the outliers
-X_filtered = np.delete(X, outlier_indices, axis=0)
-y_filtered = np.delete(y, outlier_indices, axis=0)
-
-# Re-train the polynomial regression model on the filtered data
-print("\nRe-training the model on the filtered dataset...\n")
-polyRegression(X_filtered, y_filtered)
-
-# Run cross-validation analysis on the filtered data
-cross_validation_analysis(X_filtered, y_filtered)
-
-# Plot learning curves for the filtered data
-plot_learning_curves(X_filtered, y_filtered)
-
-# Perform residual analysis on the filtered data
-residual_analysis(X_filtered, y_filtered)
