@@ -1,9 +1,12 @@
 import numpy as np
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score, KFold, learning_curve
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 import openpyxl
+import matplotlib.pyplot as plt
+import seaborn as sns
+import scipy.stats as stats
 
 # Function to read data from an Excel file into feature matrix X and target array y
 def read_excel_to_matrix(file_path):
@@ -64,6 +67,91 @@ def polyRegression(X, y):
     if train_mse < test_mse and (test_r2 < train_r2):
         print("The model may be overfitting. Consider using a simpler model or applying regularization.")
 
+from sklearn.model_selection import cross_val_score, KFold
+
+def cross_validation_analysis(X, y, degree=2):
+    # Generate polynomial features
+    poly = PolynomialFeatures(degree=degree)
+    X_poly = poly.fit_transform(X)
+
+    # Define the model
+    poly_model = LinearRegression()
+
+    # Define the k-fold cross-validation
+    kf = KFold(n_splits=5, shuffle=True, random_state=42)
+    
+    # Perform cross-validation
+    mse_scores = cross_val_score(poly_model, X_poly, y, scoring='neg_mean_squared_error', cv=kf)
+    r2_scores = cross_val_score(poly_model, X_poly, y, scoring='r2', cv=kf)
+    
+    # Convert negative MSE scores to positive
+    mse_scores = -mse_scores
+    
+    print(f"Cross-Validation MSE Scores: {mse_scores}")
+    print(f"Cross-Validation R-squared Scores: {r2_scores}")
+    print(f"Mean MSE: {np.mean(mse_scores)}, Standard Deviation: {np.std(mse_scores)}")
+    print(f"Mean R-squared: {np.mean(r2_scores)}, Standard Deviation: {np.std(r2_scores)}")
+    
+    return mse_scores, r2_scores
+
+def plot_learning_curves(X, y, degree=2):
+    poly = PolynomialFeatures(degree=degree)
+    X_poly = poly.fit_transform(X)
+    poly_model = LinearRegression()
+
+    train_sizes, train_scores, test_scores = learning_curve(
+        poly_model, X_poly, y, cv=5, scoring='neg_mean_squared_error', train_sizes=np.linspace(0.1, 1.0, 10), random_state=42)
+
+    train_scores_mean = -train_scores.mean(axis=1)
+    test_scores_mean = -test_scores.mean(axis=1)
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(train_sizes, train_scores_mean, 'o-', color="r", label="Training MSE")
+    plt.plot(train_sizes, test_scores_mean, 'o-', color="g", label="Cross-validation MSE")
+    plt.xlabel("Training Size")
+    plt.ylabel("MSE")
+    plt.title("Learning Curves")
+    plt.legend(loc="best")
+    plt.grid()
+    plt.show()
+
+def residual_analysis(X, y, degree=2):
+    poly = PolynomialFeatures(degree=degree)
+    X_poly = poly.fit_transform(X)
+    
+    # Fit the model
+    poly_model = LinearRegression()
+    poly_model.fit(X_poly, y)
+    
+    # Predict the target
+    y_pred = poly_model.predict(X_poly)
+    
+    # Calculate residuals
+    residuals = y - y_pred
+    
+    # Plot residuals
+    plt.figure(figsize=(10, 6))
+    sns.residplot(x=y_pred, y=residuals, lowess=True, line_kws={'color': 'red', 'lw': 1})
+    plt.xlabel("Predicted Values")
+    plt.ylabel("Residuals")
+    plt.title("Residual Plot")
+    plt.grid()
+    plt.show()
+    
+    # Plot histogram of residuals
+    plt.figure(figsize=(10, 6))
+    sns.histplot(residuals, kde=True)
+    plt.title("Residuals Distribution")
+    plt.grid()
+    plt.show()
+    
+    # Q-Q plot for normality
+    plt.figure(figsize=(10, 6))
+    stats.probplot(residuals, dist="norm", plot=plt)
+    plt.title("Q-Q Plot")
+    plt.grid()
+    plt.show()
+
 # Define the file path
 file_path = 'dataset.xlsx'
 
@@ -72,3 +160,12 @@ X, y = read_excel_to_matrix(file_path)
 
 # Fit the polynomial regression model and check for overfitting
 polyRegression(X, y)
+
+# Run cross-validation analysis
+cross_validation_analysis(X, y)
+
+# Plot learning curves
+plot_learning_curves(X, y)
+
+# Perform residual analysis
+residual_analysis(X, y)
