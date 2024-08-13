@@ -84,7 +84,7 @@ print("Target Array y:\n", y)
 # Fit the linear regression model
 lin_model = linearRegression(X, y)
 
-# Initial guess for the optimizer (could be the mean of the input data)
+# Cars initial values
 initial_guess = np.array([706.46, 677.49, 2493.97, 77.73, 58.19])
 
 # Bounds for the optimizer (you can set specific bounds for your problem if needed)
