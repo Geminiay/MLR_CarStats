@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.linear_model import LinearRegression
 from scipy.optimize import minimize
+import warnings
 
 # Function to read data from an Excel file into feature matrix X and target array y
 def read_excel_to_matrix(file_path):
@@ -44,6 +45,12 @@ def linearRegression(X, y):
     lin_mse = mean_squared_error(y_test, lin_pred)
     lin_r2 = r2_score(y_test, lin_pred)
     
+    # Print feature importances (coefficients)
+    feature_importances = lin_model.coef_
+    print("Feature Importances (Coefficients):")
+    for i, coef in enumerate(feature_importances):
+        print(f"Feature {i+1}: {coef}")
+
     print(f"Linear Regression Model MSE: {lin_mse}")
     print(f"Linear Regression Model R-squared: {lin_r2}")
 
@@ -71,6 +78,9 @@ def objective_function(X_input, lin_model):
     # Return the predicted value (we want to minimize this)
     return y_pred[0]
 
+
+# Suppress specific warnings about delta_grad == 0.0
+warnings.filterwarnings("ignore", message="delta_grad == 0.0. Check if the approximated function is linear")
 
 # Define the file path
 file_path = 'dataset.xlsx'
